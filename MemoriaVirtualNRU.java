@@ -28,10 +28,9 @@ class GeneradorReferencias {
         int NF = img.alto;
         int NC = img.ancho;
 
-        // Matrices: imagen (bytes), filtroX (ints), filtroY (ints), respuesta (bytes)
-        int sizeImagen = NF * NC * 3; // 3 bytes por pixel RGB
+        int sizeImagen = NF * NC * 3;
         int sizeRespuesta = sizeImagen;
-        int sizeFiltro = 3 * 3 * 4; // 3x3 ints de 4 bytes
+        int sizeFiltro = 3 * 3 * 4;
 
         int totalBytes = sizeImagen + 2 * sizeFiltro + sizeRespuesta;
         int NP = (int) Math.ceil((double) totalBytes / pageSize);
@@ -44,6 +43,8 @@ class GeneradorReferencias {
         int baseFiltroY = baseFiltroX + sizeFiltro;
         int baseRespuesta = baseFiltroY + sizeFiltro;
 
+        String[] colores = {"r", "g", "b"};
+
         for (int i = 1; i < NF - 1; i++) {
             for (int j = 1; j < NC - 1; j++) {
                 for (int ki = -1; ki <= 1; ki++) {
@@ -54,7 +55,7 @@ class GeneradorReferencias {
                             int offset = baseImg + ((ii * NC + jj) * 3 + color);
                             int page = offset / pageSize;
                             int disp = offset % pageSize;
-                            referencias.add("Imagen["+ii+"]["+jj+"]."+color+","+page+","+disp+",R");
+                            referencias.add("Imagen["+ii+"]["+jj+"]."+colores[color]+","+page+","+disp+",R");
                             refCount++;
                         }
                         for (int f = 0; f < 3; f++) {
@@ -65,8 +66,12 @@ class GeneradorReferencias {
                             int pageY = offsetY / pageSize;
                             int dispY = offsetY % pageSize;
                             referencias.add("SOBEL_X["+(ki+1)+"]["+(kj+1)+"],"+pageX+","+dispX+",R");
+                            referencias.add("SOBEL_X["+(ki+1)+"]["+(kj+1)+"],"+pageX+","+dispX+",R");
+                            referencias.add("SOBEL_X["+(ki+1)+"]["+(kj+1)+"],"+pageX+","+dispX+",R");
                             referencias.add("SOBEL_Y["+(ki+1)+"]["+(kj+1)+"],"+pageY+","+dispY+",R");
-                            refCount += 2;
+                            referencias.add("SOBEL_Y["+(ki+1)+"]["+(kj+1)+"],"+pageY+","+dispY+",R");
+                            referencias.add("SOBEL_Y["+(ki+1)+"]["+(kj+1)+"],"+pageY+","+dispY+",R");
+                            refCount += 6;
                         }
                     }
                 }
@@ -74,7 +79,7 @@ class GeneradorReferencias {
                     int offset = baseRespuesta + ((i * NC + j) * 3 + color);
                     int page = offset / pageSize;
                     int disp = offset % pageSize;
-                    referencias.add("Rta["+i+"]["+j+"]."+color+","+page+","+disp+",W");
+                    referencias.add("Rta["+i+"]["+j+"]."+colores[color]+","+page+","+disp+",W");
                     refCount++;
                 }
             }
@@ -130,4 +135,4 @@ class Imagen {
             e.printStackTrace();
         }
     }
-} // Fin clase Imagen
+} 
