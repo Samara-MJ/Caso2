@@ -1,5 +1,3 @@
-// Estructura base del proyecto para Caso 2 - Memoria Virtual
-// Autor: [Agregar nombres del grupo aquí]
 
 import java.io.*;
 import java.util.*;
