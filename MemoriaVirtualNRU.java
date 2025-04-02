@@ -168,7 +168,7 @@ class MemoriaVirtual {
         this.marcosAsignados = marcosAsignados;
         memoriaRAM = new ArrayList<>();
         tablaPaginas = new HashMap<>();
-        usadasRecientemente = new HashSet<>();
+        usadasRecientemente = ConcurrentHashMap.newKeySet();
     }
 
     public void simularPaginacion(String archivoRef) throws IOException, InterruptedException {
@@ -236,14 +236,10 @@ class MemoriaVirtual {
                     while (i < memoriaRAM.size() && usadasRecientemente.contains(memoriaRAM.get(i))) {
                         i++;
                     }
-                    if (i < memoriaRAM.size()) {
-                        int pag = memoriaRAM.get(i);
-                        memoriaRAM.remove(i);
-                        tablaPaginas.remove(pag);
-                    } else {
-                        int pag = memoriaRAM.remove(0);
-                        tablaPaginas.remove(pag);
-                    }
+                    
+                    int pag = (i < memoriaRAM.size()) ? memoriaRAM.remove(i) : memoriaRAM.remove(0);
+                    tablaPaginas.remove(pag);
+                    usadasRecientemente.remove(pag); // Remover la página reemplazada de usadasRecientemente
                 }
                 memoriaRAM.add(pagina);
                 tablaPaginas.put(pagina, memoriaRAM.size() - 1);
