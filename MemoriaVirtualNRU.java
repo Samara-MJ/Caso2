@@ -1,5 +1,6 @@
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.*;
 
 public class MemoriaVirtualNRU {
@@ -155,11 +156,13 @@ class MemoriaVirtual {
     private int marcosAsignados;
     private List<Integer> memoriaRAM;
     private Map<Integer, Integer> tablaPaginas;
-    private Set<Integer> usadasRecientemente;
-    private int hits = 0, fallos = 0, totalRefs = 0;
+    private Set<Integer> usadasRecientemente = ConcurrentHashMap.newKeySet();
+    private AtomicInteger hits = new AtomicInteger(0);
+    private AtomicInteger fallos = new AtomicInteger(0);
+    private AtomicInteger totalRefs = new AtomicInteger(0);
     private final Object lock = new Object();
     private AtomicBoolean finished = new AtomicBoolean(false);
-    
+
     public MemoriaVirtual(int tamanioPagina, int marcosAsignados) {
         this.tamanioPagina = tamanioPagina;
         this.marcosAsignados = marcosAsignados;
@@ -167,7 +170,7 @@ class MemoriaVirtual {
         tablaPaginas = new HashMap<>();
         usadasRecientemente = new HashSet<>();
     }
-    
+
     public void simularPaginacion(String archivoRef) throws IOException, InterruptedException {
         Thread refThread = new Thread(() -> {
             try (BufferedReader br = new BufferedReader(new FileReader(archivoRef))) {
@@ -175,22 +178,22 @@ class MemoriaVirtual {
                 int count = 0;
                 while ((line = br.readLine()) != null) {
                     if (line.startsWith("TP=") || line.startsWith("NF=") ||
-                        line.startsWith("NC=") || line.startsWith("NR=") ||
-                        line.startsWith("NP=")) {
+                            line.startsWith("NC=") || line.startsWith("NR=") ||
+                            line.startsWith("NP=")) {
                         continue;
                     }
                     String[] parts = line.split(",");
                     int pagina = Integer.parseInt(parts[1]);
                     procesarReferencia(pagina);
-                    totalRefs++;
                     count++;
                     if (count % 10000 == 0) {
                         try {
-                            Thread.sleep(1); //  espera 1 ms
+                            Thread.sleep(1);
                         } catch (InterruptedException e) {
                             Thread.currentThread().interrupt();
                         }
                     }
+                    
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -198,40 +201,36 @@ class MemoriaVirtual {
                 finished.set(true);
             }
         });
-        
+
         Thread updateThread = new Thread(() -> {
             while (!finished.get()) {
-                try {
-                    Thread.sleep(1);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
+                for (int i = 0; i < 5; i++) {
+                    try {
+                        Thread.sleep(1);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                    actualizarEstado();
                 }
-                actualizarEstado();
             }
-            for (int i = 0; i < 5; i++) {
-                try {
-                    Thread.sleep(1);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-                actualizarEstado();
-            }
+            
         });
-        
+
         refThread.start();
         updateThread.start();
         refThread.join();
         updateThread.join();
         imprimirResultados();
     }
-    
+
     public void procesarReferencia(int pagina) {
-        synchronized(lock) {
+        synchronized (lock) {
+            totalRefs.incrementAndGet();
             if (tablaPaginas.containsKey(pagina)) {
-                hits++;
+                hits.incrementAndGet();
                 usadasRecientemente.add(pagina);
             } else {
-                fallos++;
+                fallos.incrementAndGet();
                 if (memoriaRAM.size() >= marcosAsignados) {
                     int i = 0;
                     while (i < memoriaRAM.size() && usadasRecientemente.contains(memoriaRAM.get(i))) {
@@ -245,27 +244,27 @@ class MemoriaVirtual {
                         int pag = memoriaRAM.remove(0);
                         tablaPaginas.remove(pag);
                     }
-                    usadasRecientemente.clear();
                 }
                 memoriaRAM.add(pagina);
                 tablaPaginas.put(pagina, memoriaRAM.size() - 1);
             }
         }
     }
-    
+
     private void actualizarEstado() {
-        synchronized(lock) {
+        synchronized (lock) {
+            Set<Integer> copia = new HashSet<>(usadasRecientemente);
             usadasRecientemente.clear();
         }
     }
     
+
     public void imprimirResultados() {
-        synchronized(lock) {
-            System.out.println("Hits: " + hits);
-            System.out.println("Fallos: " + fallos);
-            System.out.println("Total de referencias: " + totalRefs);
-            double porcentajeHits = (totalRefs > 0) ? ((double)hits / totalRefs * 100) : 0;
-            System.out.printf("Porcentaje de hits: %.2f%%\n", porcentajeHits);
-        }
+        System.out.println("Hits: " + hits.get());
+        System.out.println("Fallos: " + fallos.get());
+        System.out.println("Total de referencias: " + totalRefs.get());
+        double porcentajeHits = (totalRefs.get() > 0) ? ((double) hits.get() / totalRefs.get() * 100) : 0;
+        System.out.printf("Porcentaje de hits: %.2f%%\n", porcentajeHits);
+
     }
 }
