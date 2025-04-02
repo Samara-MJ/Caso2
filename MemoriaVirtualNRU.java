@@ -257,10 +257,11 @@ class MemoriaVirtual {
 
     public void imprimirResultados() {
         System.out.println("Hits: " + hits.get());
-        System.out.println("Fallos: " + fallos.get());
+        System.out.println("Fallos: " + (totalRefs.get() - hits.get()));
         System.out.println("Total de referencias: " + totalRefs.get());
         double porcentajeHits = (totalRefs.get() > 0) ? ((double) hits.get() / totalRefs.get() * 100) : 0;
         System.out.printf("Porcentaje de hits: %.2f%%\n", porcentajeHits);
+        System.out.printf("Porcentaje de fallos: %.2f%%\n", 100-porcentajeHits);
 
     }
 }
